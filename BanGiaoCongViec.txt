@@ -1,0 +1,53 @@
+* Thông tin chung cho cả nhóm:
+	- Công nghệ: .NET 8 / C# 12 / Kiến trúc MVVM.
+	- Cơ sở dữ liệu: SQL Server (sử dụng EF Core 8.x Code-First).
+	- Mô hình Git: Mỗi bạn tự tạo một nhánh (branch) riêng từ nhánh main để làm việc (Ví dụ: feature/simulator, feature/backend-storage), tuyệt đối không push trực tiếp lên main.
+
+1. BẠN 1: CHUYÊN TRÁCH IOT & GIẢ LẬP (COMPONENT 1)
+	- Thư mục/Project phụ trách: 3. Services / SmartBuilding.Simulator (Loại project: Console App).
+	- Những gì ĐÃ CÓ SẴN (Tech Lead đã chuẩn bị):
+		+ Thư viện NuGet đã cài: MQTTnet (Phiên bản 4.x tương thích .NET 8).
+		+ Reference đã cài: Tham chiếu tới project SmartBuilding.Domain (để dùng chung các định nghĩa thực thể).
+	- Nhiệm vụ bạn CẦN LÀM:
+		+ Nghiên cứu cách tạo một MQTT Client bằng thư viện MQTTnet kết nối tới một MQTT Broker công cộng miễn phí (Ví dụ: broker.hivemq.com hoặc test.mosquitto.org).
+		+ Viết một hàm chạy ngầm (Sử dụng System.Timers.Timer), cứ mỗi 5 giây tự động sinh ngẫu nhiên các thông số: Nhiệt độ (24°C - 35°C), Độ ẩm (50% - 80%), Khói (5ppm - 20ppm) cho các phòng (Khách, Ngủ, Bếp) của một Căn hộ.
+		+ Đóng gói các thông số trên thành chuỗi JSON Định kỳ theo đúng cấu trúc mẫu dưới đây và Publish lên topic: smartbuilding/apartments/{ID_CanHo}/telemetry.
+		+ Viết thêm tính năng giả lập sự cố: Khi bấm một phím bất kỳ trên bàn phím (Ví dụ phím 'A'), lập tức đẩy giá trị Nhiệt độ vọt lên > 60°C hoặc Khói > 80ppm để test tính năng báo động của hệ thống.
+	- Chuẩn định dạng gói JSON: (xem trong file CauHinhGoiJSON)
+
+2. BẠN 2: CHUYÊN TRÁCH BACKEND SERVER & LƯU TRỮ (COMPONENT 2 - NHÁNH 1)
+	- Thư mục/Project phụ trách: 3. Services / SmartBuilding.Server (Chung project với Bạn 3).
+	- Những gì ĐÃ CÓ SẴN (Tech Lead đã chuẩn bị):
+		+ Thư viện NuGet đã cài: MQTTnet, Microsoft.EntityFrameworkCore (Bản 8.x).
+		+ Reference đã cài: Tham chiếu trực tiếp tới SmartBuilding.Data (Tầng chứa DbContext) và SmartBuilding.Domain.
+	- Nhiệm vụ bạn CẦN LÀM:
+		+ Cấu hình MQTT Client để Subscribe (Đăng ký hứng) toàn bộ các tin nhắn từ topic dữ liệu: smartbuilding/apartments/+/telemetry (+ là dấu đại diện cho tất cả các ID căn hộ).
+		+ Khi nhận được chuỗi JSON từ Bạn 1 gửi lên, tiến hành bóc tách chuỗi (Deserialize JSON) thành các đối tượng C#.
+		+ Gọi lớp SmartBuildingDbContext để lưu toàn bộ các giá trị đo được vào bảng LichSuDo trong Cơ sở dữ liệu một cách bất đồng bộ (await DbContext.SaveChangesAsync()).
+		+ Viết các hàm dịch vụ (Hoặc Web API đơn giản nếu cần) để khi phía WPF Client của Bạn 4 gửi yêu cầu, Server sẽ truy vấn Database và trả về một mảng dữ liệu lịch sử (1h, 24h, 7 ngày) nhằm phục vụ việc vẽ biểu đồ.
+
+3. BẠN 3: CHUYÊN TRÁCH XỬ LÝ THỜI GIAN THỰC & CẢNH BÁO (COMPONENT 2 - NHÁNH 2)
+	- Thư mục/Project phụ trách: 3. Services / SmartBuilding.Server (Chung project với Bạn 2).
+	- Những gì ĐÃ CÓ SẴN (Tech Lead đã chuẩn bị):
+		+ Tương tự Bạn 2, đã có sẵn đầy đủ kết nối tới các tầng Data và Domain kèm thư viện MQTTnet.
+	- Nhiệm vụ bạn CẦN LÀM:
+		+ Viết một luồng xử lý song song với Bạn 2 ngay khi nhận được gói tin dữ liệu từ Bạn 1.
+		+ Thực hiện kiểm tra điều kiện (Logic check): Nếu phát hiện thông số bất thường (Ví dụ: Type == "Temperature" và Value > 60.0), bạn phải lập tức kích hoạt kịch bản báo động.
+		+ Đóng gói một chuỗi JSON Lệnh báo động khẩn cấp theo cấu trúc mẫu bên dưới.
+		+ Bắn trực tiếp gói tin này xuống các ứng dụng WPF Client đang chạy theo thời gian thực (Real-time). Bạn có thể chọn cách Publish ngược lại một topic MQTT chuyên biệt cho cảnh báo (Ví dụ: smartbuilding/alerts) hoặc thiết lập một hub SignalR để đẩy dữ liệu xuống trực tiếp cho Bạn 4.
+	- Chuẩn định dạng gói JSON lệnh báo động: (xem trong file CauHinhGoiJSON)
+
+4. BẠN 4: CHUYÊN TRÁCH WPF CLIENT - UI/UX & ĐỒ THỊ (COMPONENT 3)
+	- Thư mục/Project phụ trách: * 4. Presentation / SmartBuilding.WPF.Shared (Nơi viết ViewModel chung).
+		+ 4. Presentation / SmartBuilding.WPF.Resident (App Chủ hộ).
+		+ 4. Presentation / SmartBuilding.WPF.Manager (App Quản lý tòa nhà).
+	- Những gì ĐÃ CÓ SẴN (Tech Lead đã chuẩn bị):
+		+ Thư viện NuGet đã cài: CommunityToolkit.Mvvm (Tại project Shared) và LiveCharts.Wpf hoặc OxyPlot.Wpf (Tại các project App).
+		+ Reference đã cài: Các app WPF đã được tham chiếu sẵn tới project Shared và Domain.
+	- Nhiệm vụ bạn CẦN LÀM:
+		+ Thiết kế giao diện (XAML) cho 2 ứng dụng:
+			. App Chủ hộ: Dashboard hiển thị số liệu cảm biến nhảy số theo thời gian thực; Màn hình biểu đồ lịch sử; Nút gửi yêu cầu hỗ trợ.
+			. App Quản lý: Màn hình giám sát tổng quan trạng thái tòa nhà; Trung tâm nhận thông báo khẩn cấp (Pop-up đỏ cảnh báo).
+		+ Áp dụng chuẩn mô hình MVVM: Tách biệt hoàn toàn code giao diện XAML và code xử lý logic trong ViewModel. Sử dụng [ObservableProperty] và [RelayCommand] của thư viện CommunityToolkit.Mvvm để thực hiện Data Binding.
+		+ Yêu cầu bắt buộc từ giảng viên (Xử lý đa luồng an toàn): Khi ứng dụng nhận được dữ liệu thời gian thực từ luồng mạng (MQTT/SignalR) do Bạn 3 gửi xuống, bạn bắt buộc phải bọc đoạn code cập nhật dữ liệu vào Application.Current.Dispatcher.Invoke() hoặc Dispatcher.BeginInvoke(). Nếu không làm điều này, UI Thread của WPF sẽ bị xung đột luồng và gây crash ứng dụng ngay lập tức.
+		+ Thực hiện gọi dữ liệu lịch sử từ API của Bạn 2 để vẽ đồ thị biến thiên lên LiveCharts/OxyPlot khi người dùng bấm chọn mốc thời gian (1h, 24h, 7 ngày).

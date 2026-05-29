@@ -1,0 +1,35 @@
+1. Sơ đồ phân chia công việc (Task Assignment)
+Bạn 1: Chuyên trách IoT & Giả lập (Component 1)
+	- Phân hệ: SmartBuilding.Simulator (Viết bằng C# Console hoặc Python).
+	- Nhiệm vụ: * Cấu hình thư viện MQTTnet.
+		+ Viết logic tự động chạy ngầm, dùng Timer để cứ mỗi 5 giây tự tạo dữ liệu ngẫu nhiên (Nhiệt độ, Độ ẩm, Khói) cho tất cả các phòng/căn hộ.
+		+ Thiết lập một hàm giả lập sự cố (ví dụ: nhấn phím 'A' trên bàn phím Console thì lập tức sinh dữ liệu Nhiệt độ > 60°C) để test tính năng báo động.
+		+ Đóng gói toàn bộ thành chuỗi JSON và Publish lên MQTT Broker công cộng.
+
+Bạn 2: Chuyên trách Backend Server & Lưu trữ (Component 2 - Nhánh 1)
+	- Phân hệ: SmartBuilding.Server (Worker Service / Web API).
+	- Nhiệm vụ:
+		+ Cấu hình kết nối MQTT Broker để Subscribe (hứng) gói tin từ Bạn 1 gửi lên.
+		+ Viết logic bóc tách chuỗi JSON nhận được (Deserialization).
+		+ Sử dụng SmartBuildingDbContext mà bạn đã tạo để ghi log bất đồng bộ dữ liệu đó vào bảng LichSuDo trong Database (PostgreSQL/SQL Server).
+		+ Viết các API (HTTP GET) để trả về mảng dữ liệu lịch sử (phục vụ cho việc vẽ biểu đồ ở Client).
+
+Bạn 3: Chuyên trách Xử lý thời gian thực & Cảnh báo (Component 2 - Nhánh 2)
+	- Phân hệ: SmartBuilding.Server (Phần Real-time Signal/MQTT) & WPF.Shared.
+	- Nhiệm vụ:
+		+ Xây dựng nhánh xử lý song song với Bạn 2: Khi nhận được dữ liệu, kiểm tra ngay xem thông số có vượt ngưỡng an toàn không.
+		+ Nếu vượt ngưỡng (khói cao, nhiệt độ > 60°C), lập tức đẩy một lệnh báo động (Alert Message) thời gian thực xuống các Client đang kết nối (có thể dùng MQTT Broker với một topic riêng như building/alerts hoặc dùng SignalR).
+		+ Quản lý trạng thái kết nối của các căn hộ để biết hệ thống nào đang Online/Offline.
+
+Bạn 4: Chuyên trách WPF Client - Giao diện & Đồ thị (Component 3)
+	- Phân hệ: SmartBuilding.WPF.Resident và SmartBuilding.WPF.Manager.
+	- Nhiệm vụ:
+		+ Thiết kế giao diện XAML cho cả 2 App (Chủ hộ và Quản lý).
+		+ Ứng dụng chuẩn mô hình MVVM với CommunityToolkit.Mvvm để bind dữ liệu.
+		+ Tích hợp thư viện LiveCharts.Wpf hoặc OxyPlot.Wpf để vẽ biểu đồ biến thiên (1h, 24h, 7 ngày) từ dữ liệu mà Bạn 2 cung cấp qua API.
+		+ Xử lý hàm Dispatcher.Invoke() (như yêu cầu đặc biệt của đề bài) để khi nhận được gói tin thời gian thực từ Bạn 3, giao diện sẽ tự nhảy số/hiển thị Pop-up đỏ mà không bị crash luồng UI.
+
+2. Những gì Lead cần làm:
+	- Thống nhất định dạng JSON (Data Contract): Bạn viết ra một file text mẫu quy định cấu trúc gói tin MQTT để Bạn 1 biết đường đóng gói, Bạn 2 và 3 biết đường bóc tách.
+	- Tạo sẵn các Project trống: Bạn tạo sẵn cấu trúc thư mục Solution trong Visual Studio, add sẵn các Reference giữa các project rồi push lên GitHub cho 4 bạn kéo về code.
+	- Hỗ trợ kỹ thuật: Giải quyết các lỗi khó về bất đồng bộ (async/await) hoặc kết nối mạng khi các bạn kết nối các phân hệ lại với nhau.	

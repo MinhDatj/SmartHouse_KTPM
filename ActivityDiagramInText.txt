@@ -1,0 +1,41 @@
+Sơ đồ 1: Luồng xử lý dữ liệu định kỳ (Dành cho Bạn 1, Bạn 2, Bạn 4)
+
+[Bạn 1: Simulator]               [MQTT Broker]             [Bạn 2: Server]             [Database]             [Bạn 4: WPF Client]
+        │                              │                          │                         │                          │
+        ├─(Mỗi 5 giây sinh JSON)      │                          │                         │                          │
+        ├─────────────────────────────>│                          │                         │                          │
+        │   Publish gói Telemetry      │                          │                         │                          │
+        │                              ├─────────────────────────>│                         │                          │
+        │                              │    Forward gói tin       │                         │                          │
+        │                              │                          ├─(Bóc tách JSON)         │                          │
+        │                              │                          ├────────────────────────>│                          │
+        │                              │                          │  Save `LichSuDo` (Async)│                          │
+        │                              │                          │                         │                          │
+        │                              │                          │                         │   Request Data (1h/24h)  │
+        │                              │                          │<───────────────────────────────────────────────────┤
+        │                              │                          │                         │                          │
+        │                              │                          ├────────────────────────>│                          │
+        │                              │                          │   Query với Index       │                          │
+        │                              │                          │<────────────────────────┤                          │
+        │                              │                          │                         │                          │
+        │                              │                          ├───────────────────────────────────────────────────>│
+        │                              │                          │   Trả về mảng JSON dữ liệu vẽ Chart                │
+
+
+Sơ đồ 2: Luồng xử lý Báo động Khẩn cấp (Dành cho Bạn 1, Bạn 3, Bạn 4)
+
+[Bạn 1: Simulator]               [MQTT Broker]             [Bạn 3: Server]                                    [Bạn 4: WPF Client]
+        │                              │                          │                                                    │
+        ├─(Giả lập Nhiệt độ 65°C)      │                          │                                                    │
+        ├─────────────────────────────>│                          │                                                    │
+        │   Publish gói Telemetry      │                          │                                                    │
+        │                              ├─────────────────────────>│                                                    │
+        │                              │    Forward gói tin       │                                                    │
+        │                              │                          ├─(Kiểm tra: Value > 60)                             │
+        │                              │                          ├─(Tạo gói Alert JSON)                               │
+        │                              │                          │                                                    │
+        │                              │                          ├───────────────────────────────────────────────────>│
+        │                              │                          │   Bắn lệnh Real-time (MQTT/SignalR)                │
+        │                              │                          │                                                    │  ├─(Nhận luồng ngầm)
+        │                              │                          │                                                    │  ├─(Dispatcher.Invoke)
+        │                              │                          │                                                    │  └─> [HIỂN THỊ POP-UP ĐỎ]

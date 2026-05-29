@@ -1,0 +1,43 @@
+BƯỚC 1: XÂY DỰNG NỀN MÓNG CƠ SỞ DỮ LIỆU (DATABASE & CORE MODELS)
+Không có dữ liệu thì các thành phần khác không thể chạy được, vì vậy đây luôn là bước đầu tiên.
+	- Tạo Solution trong Visual Studio: Gom tất cả các project (Server, App Chủ hộ, App Quản lý, Simulator) vào chung một Solution để dễ quản lý.
+	- Thiết kế Database: Sử dụng Entity Framework Core (Code-First). Bạn định nghĩa các Class tương ứng với các thực thể (NguoiDung, CanHo, Phong, CamBien, LichSuDo, YeuCauHoTro).
+	- Chạy Migration: Tạo và cập nhật Database xuống SQL Server (hoặc SQLite để chạy gọn nhẹ trên máy).Chèn dữ liệu mẫu (Seed Data): Hãy viết code tự động chèn sẵn vài tài khoản chủ hộ, 1-2 căn hộ, mỗi căn hộ có vài phòng và cảm biến để có cái làm gốc.
+
+BƯỚC 2: VIẾT TRÌNH GIẢ LẬP BIÊN (SENSOR SIMULATOR)
+Có DB rồi, cần một nguồn phát dữ liệu liên tục để làm "thức ăn" cho Backend.
+	- Tạo một dự án nhỏ (C# Console App) độc lập.
+	- Cài đặt thư viện MQTTnet.
+	- Viết hàm chạy vòng lặp vô hạn (dùng PeriodicTimer hoặc Task.Delay mỗi 5 giây):
+		+ Tạo số ngẫu nhiên cho nhiệt độ (ví dụ từ 25 - 35°C).
+		+ Đóng gói thành chuỗi JSON chứa danh sách ID cảm biến và giá trị.
+		+ Publish (bắn) chuỗi JSON này lên MQTT Broker công cộng.
+
+BƯỚC 3: PHÁT TRIỂN BACKEND SERVER (BỘ NÃO TRUNG TÂM)
+Thành phần này đứng ở giữa, hứng dữ liệu từ Bước 2 và chuẩn bị đẩy cho Bước 4.
+	- Tạo dự án Backend (có thể là Web API hoặc một Worker Service chạy ngầm).
+	- Cấu hình MQTT Client ngầm: Cho Server Subscribe (hứng) cái chủ đề (Topic) mà con Simulator đang bắn lên.
+	- Triển khai Luồng Song Song (Fork/Join như sơ đồ của bạn):
+		+ Viết hàm bóc tách chuỗi JSON nhận được.Gọi Entity Framework để Lưu vào bảng LichSuDo (Nhánh 1).
+		+ Đồng thời, viết logic Kiểm tra thông số: Nếu nhiệt độ quá cao ($>60^{\circ}\text{C}$), tạo một cờ hiệu Cảnh báo (Nhánh 2).
+	- Cấu hình SignalR/WebSocket: Thiết lập các Hub mạng để sẵn sàng đẩy dữ liệu xuống cho các App WPF ở bước sau.
+
+BƯỚC 4: LẬP TRÌNH APP CHỦ HỘ (WPF CLIENT - TRỌNG TÂM 1)
+Đến bước này, hệ thống Backend đã chạy mượt, bạn bắt đầu làm giao diện tiêu thụ dữ liệu.
+	- Tạo dự án WPF App áp dụng mô hình MVVM.
+	- Màn hình Real-time Dashboard:
+		+ Kết nối App với SignalR Hub của Server.
+		+ Khi Server bắn dữ liệu mới về $\rightarrow$ Cập nhật vào ViewModel $\rightarrow$ Sử dụng Dispatcher.Invoke để đẩy lên View (Giao diện hiển thị số nhảy liên tục).
+	- Màn hình Lịch sử Biểu đồ (Luồng có Loop):
+		+ Cài đặt thư viện vẽ biểu đồ (LiveCharts).
+		+  Thiết kế giao diện gồm Combobox chọn thời gian (1h, 24h, 7 ngày).
+		+ Viết hàm gửi HTTP GET Request lên Server $\rightarrow$ Server query DB từ Bước 1 $\rightarrow$ Trả về mảng JSON $\rightarrow$ App nhận dữ liệu và vẽ lên Chart.
+	- Chức năng gửi yêu cầu hỗ trợ: Viết nút bấm để lưu một bản ghi mới vào bảng YeuCauHoTro trong DB.
+
+BƯỚC 5: LẬP TRÌNH APP QUẢN LÝ TÒA NHÀ (WPF CLIENT - TRỌNG TÂM 2)
+Hoàn thiện mảnh ghép cuối cùng để phân hệ tương tác đồng thời.
+	- Tạo dự án WPF App thứ hai (hoặc phân quyền đăng nhập ngay trên App cũ).
+	- Màn hình giám sát tổng thể: Hiển thị danh sách tất cả căn hộ và trạng thái cảm biến lấy từ Server.
+	- Màn hình nhận yêu cầu cứu hộ/hỗ trợ: * Đăng ký lắng nghe sự kiện từ SignalR Server.
+		+ Khi chủ hộ bấm "Gửi yêu cầu" (ở Bước 4), Server nhận được sẽ lập tức bắn tín hiệu xuống App Quản lý này.
+		+ Kích hoạt mở một Window pop-up mới hoặc nhấp nháy đỏ trên màn hình ban quản lý để thông báo.

@@ -1,0 +1,17 @@
+SmartBuilding.Solution
+│
+├── 📁 1. Core
+│   └── SmartBuilding.Domain       (Class Library: Chứa các Models, Entities, Interfaces chung)
+│
+├── 📁 2. Infrastructure
+│   └── SmartBuilding.Data         (Class Library: Chứa EF Core DbContext, Migrations, Repositories)
+│
+├── 📁 3. Services (Component 1 & 2)
+│   ├── SmartBuilding.Simulator    (Console App / Python script: Script giả lập cảm biến, Publish MQTT)
+│   └── SmartBuilding.Server       (Worker Service / Console App: Subscribe MQTT, Ghi DB, Xử lý logic)
+│
+└── 📁 4. Presentation (Component 3)
+    ├── SmartBuilding.WPF.Shared   (Class Library: Chứa ViewModels, Helpers, DTOs chung)
+    ├── SmartBuilding.WPF.Resident (WPF App: App dành cho Chủ hộ)
+    └── SmartBuilding.WPF.Manager  (WPF App: App dành cho Quản lý tòa nhà)
+

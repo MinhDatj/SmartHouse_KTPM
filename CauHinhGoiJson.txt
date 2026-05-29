@@ -1,0 +1,49 @@
+1. Gói tin dữ liệu định kỳ
+	- Topic MQTT: smartbuilding/apartments/{ID_CanHo}/telemetry
+	- Định dạng:
+	{
+		"ApartmentId": ...,
+		"Timestamp": "...",
+		"Sensors": [
+			{ "SensorId": ..., "Type": "...", "Value": ..., "Room": "..." },
+			{ "SensorId": ..., "Type": "...", "Value": ..., "Room": "..." },
+			...
+		]
+	}
+
+	VD: 
+	{
+		"ApartmentId": 101,
+		"Timestamp": "2026-05-27T19:30:00Z",
+		"Sensors": [
+			{ "SensorId": 1, "Type": "Temperature", "Value": 26.5, "Room": "Khách" },
+			{ "SensorId": 2, "Type": "Humidity", "Value": 65.0, "Room": "Khách" },
+			{ "SensorId": 3, "Type": "Smoke", "Value": 12.3, "Room": "Bếp" }
+		]
+	}
+
+2. Gói tin lệnh báo động: (Khi phát hiện vượt ngưỡng, Server sẽ bắn gói tin này xuống Client ngay lập tức.)
+	- Topic MQTT: smartbuilding/alerts
+	- Định dạng:
+		{
+		  "AlertId": "...",
+		  "ApartmentId": ...,
+		  "ApartmentName": "...",
+		  "RoomName": "...",
+		  "SensorType": "...",
+		  "CurrentValue": ...,
+		  "Timestamp": "...",
+		  "Message": "..."
+		}
+
+	VD: 
+	{
+	  "AlertId": "ALT-9921",
+	  "ApartmentId": 101,
+	  "ApartmentName": "Phòng 1002 - Tầng 10",
+	  "RoomName": "Bếp",
+	  "SensorType": "Temperature",
+	  "CurrentValue": 65.2,
+	  "Timestamp": "2026-05-27T19:31:05Z",
+	  "Message": "CẢNH BÁO: Nhiệt độ phòng bếp vượt ngưỡng an toàn (>60°C)!"
+	}

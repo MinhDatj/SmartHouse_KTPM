@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/Core/">
+    <File Path="CauHinhGoiJson.txt" />
+    <Project Path="ChuHo.cs/Domain.cs.csproj" Id="f3d42e94-b822-4bfb-9002-ba7ce30f5214" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="Data/Data.csproj" Id="d4b7400b-1148-4e82-a5cb-438dae1fc209" />
+  </Folder>
+  <Folder Name="/Presentation/">
+    <Project Path="WPF_Manager/WPF_Manager.csproj" Id="bf874b0b-7c6b-4348-a59c-2195754233b1" />
+    <Project Path="WPF_Resident/WPF_Resident.csproj" Id="db58943a-a96f-4f35-81c1-57012e382744" />
+    <Project Path="WPF_Shared/WPF_Shared.csproj" Id="14d25fda-4574-4240-9b9a-7fc9e72eb2e4" />
+  </Folder>
+  <Folder Name="/Service/">
+    <Project Path="Server/Server.csproj" Id="f7062c37-5a45-4f33-9323-5b5ae4480bce" />
+    <Project Path="Simulator/Simulator.csproj" Id="49765a04-cbb8-4bf7-addb-28b35d720f65" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="ActivityDiagramInText.txt" />
+    <File Path="BanGiaoCongViec.txt" />
+    <File Path="CauHinhGoiJson.txt" />
+    <File Path="CauTrucThuMuc.txt" />
+    <File Path="kythuatphanmem.txt" />
+    <File Path="PhanViec.txt" />
+    <File Path="trình tự xây dựng kythuatphanmem.txt" />
+  </Folder>
+</Solution>

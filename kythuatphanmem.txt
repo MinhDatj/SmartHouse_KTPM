@@ -1,0 +1,29 @@
+"Tôi đang làm một bài tập lớn môn Kỹ thuật Phần mềm. Hãy đóng vai là một Kỹ sư giải pháp và Lập trình viên cao cấp hệ sinh thái .NET để hướng dẫn cấu trúc thư mục, thiết kế database và viết mã nguồn cho hệ thống sau:
+1. Công nghệ & Môi trường phát triển:
+- IDE: Visual Studio 2022/2026, .NET 8
+- Ngôn ngữ: C# (WPF cho ứng dụng Desktop).
+- Kiến trúc: Triển khai chuẩn mô hình MVVM (Model-View-ViewModel). Sử dụng thư viện CommunityToolkit.Mvvm để quản lý ObservableProperty, RelayCommand và INotifyPropertyChanged.
+- Giao thức kết nối: MQTT (sử dụng thư viện MQTTnet trong C#).
+2. Kiến trúc các thành phần hệ thống cần xây dựng:
+Hệ thống gồm 3 thành phần độc lập tương tác với nhau:
+- Component 1: Script Giả Lập Biên (Sensor Simulator): Viết bằng C# Console App hoặc Python. Nhiệm vụ: Tự động chạy ngầm, tạo dữ liệu ngẫu nhiên (Nhiệt độ, Độ ẩm, Khói) định kỳ mỗi 5 giây. Đóng gói dữ liệu của TẤT CẢ cảm biến trong căn hộ vào 1 gói tin JSON duy nhất và Publish lên một MQTT Broker công cộng. Thi thoảng giả lập dữ liệu vượt ngưỡng (ví dụ: Nhiệt độ > 60°C) để test tính năng báo động.
+- Component 2: Backend Server (C#): * Chạy ngầm để Subscribe chủ đề MQTT từ thiết bị giả lập.
+	+ Khi nhận được JSON, sử dụng kiến trúc bất đồng bộ đa luồng để xử lý 2 nhánh song song: (1) Lưu dữ liệu log vào Database. (2) Kiểm tra điều kiện thông số: Nếu bình thường thì đẩy số liệu, nếu vượt ngưỡng thì đẩy lệnh báo động thời gian thực xuống WPF Client.
+- Component 3: WPF Client App (Dành cho Chủ hộ & Quản lý tòa nhà): Chia làm 2 Phân hệ giao diện (hoặc 2 App riêng biệt):
+	+ App Chủ hộ: Có màn hình Dashboard thời gian thực (nhận data từ Server để nhảy số không cần F5); Màn hình Lịch sử hiển thị biểu đồ đồ thị biến thiên theo thời gian (cho phép chọn khung thời gian 1h, 24h, 7 ngày, gửi HTTP GET lên Server để lấy mảng dữ liệu vẽ lại Chart); Chức năng "Gửi yêu cầu hỗ trợ" tới ban quản lý.
+	+ App Quản lý tòa nhà: Màn hình giám sát trạng thái các căn hộ; Trung tâm nhận thông báo hỗ trợ từ chủ hộ theo thời gian thực (hiển thị Pop-up đỏ cảnh báo nếu có căn hộ báo động hoặc cần cứu hộ).
+3. Thiết kế Cơ sở dữ liệu (Database Entities):
+Hãy thiết kế các bảng (Tables) bằng Entity Framework Core (Code-First) hoặc SQL Server với mối quan hệ (Relationships) rõ ràng cho các thực thể sau:
+- NguoiDung (Chủ hộ): ID, TaiKhoan, MatKhau, HoTen, SDT.
+- CanHo: ID, TenCanHo, Tang, ID_NguoiDung (Khóa ngoại).
+- Phong: ID, TenPhong (Khách, Ngủ, Bếp), ID_CanHo (Khóa ngoại).
+- CamBien: ID, TenCamBien (Nhiệt độ, Khói...), LoaiCamBien, ID_Phong (Khóa ngoại).
+- LichSuDo (Log bảng dữ liệu lớn): ID, ID_CamBien, GiaTri, ThoiGian.
+- QuanLyToaNha: ID, TaiKhoan, MatKhau, HoTen, VaiTro.
+- NhanVien: ID, HoTen, ChucVu, SDT.
+- YeuCauHoTro: ID, ID_CanHo, NoiDung, ThoiGian, TrangThai (Chờ xử lý / Đang xử lý / Đã xong).
+4. Yêu cầu đặc biệt về Code WPF:
+- Tách biệt hoàn toàn View (XAML) và ViewModel (C#). Sử dụng Data Binding để hiển thị dữ liệu lịch sử lên Chart (Gợi ý dùng thư viện LiveCharts.Wpf hoặc OxyPlot.Wpf).
+- Tại ViewModel của WPF, khi nhận dữ liệu thời gian thực từ Network (Background Thread), bắt buộc phải xử lý bất đồng bộ bằng Application.Current.Dispatcher.Invoke() hoặc Dispatcher.BeginInvoke() để cập nhật vào ObservableCollection một cách an toàn mà không gây crash UI Thread.
+
+Hãy bắt đầu bằng việc hướng dẫn tôi Cấu trúc thư mục giải pháp (Solution Structure) trong Visual Studio và Viết mã nguồn cho các Class Model (Entity Framework) trước."
