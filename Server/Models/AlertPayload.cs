@@ -1,6 +1,6 @@
 using System;
 
-namespace SmartBuilding.Server.Models; // Sử dụng File-scoped namespace giống core của nhóm
+namespace Server.Models; // Sử dụng File-scoped namespace giống core của nhóm
 
 public class AlertPayload
 {

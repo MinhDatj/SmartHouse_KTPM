@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace Server.Hubs; // Đã sửa namespace cho khớp với cấu trúc nhóm
+namespace Server.Hubs; 
 
 public class ApartmentHub : Hub
 {
