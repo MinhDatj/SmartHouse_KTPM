@@ -10,7 +10,7 @@ namespace SmartBuilding.Server
 
         public SqlProvider2()
         {
-            // Đường dẫn kết nối trực tiếp đến file Database .mdf của bạn
+            // Đường dẫn kết nối trực tiếp đến file Database .mdf của bạn -> Đổi lại đường dẫn đến file database trên máy khi chạy
             _conn = @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=D:\VisualStudioProject\KTPM\AppTheoDoiSucKhoeBenhNhan\AppTheoDoiSucKhoeBenhNhan\HospitalDB.mdf;Integrated Security=True;Pooling=False";
         }
 
