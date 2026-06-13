@@ -5,7 +5,6 @@ namespace Server.Models; // Sử dụng File-scoped namespace giống core của
 public class AlertPayload
 {
     // Dùng 'required' cho các trường bắt buộc phải có khi báo động
-    public required string ApartmentId { get; set; }
     
     public required string AlertType { get; set; } // Ví dụ: "Temperature" hoặc "Smoke"
     

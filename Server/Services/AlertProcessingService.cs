@@ -2,9 +2,9 @@ using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.SignalR; // Cần thiết cho SignalR
-using Server.Hubs;                  // Namespace chứa ApartmentHub
-using Server.Models;                // Namespace chứa AlertPayload
+using Microsoft.AspNetCore.SignalR;
+using Server.Hubs;
+using Server.Models; 
 
 namespace Server.Services
 {
@@ -23,74 +23,96 @@ namespace Server.Services
         {
             try
             {
-                // 1. Bóc tách dữ liệu từ JSON
-                string canHoId = sensorData.GetProperty("CanHoId").GetString() ?? "Unknown";
-                double nhietDo = sensorData.GetProperty("NhietDo").GetDouble();
-                bool khoi = sensorData.GetProperty("Khoi").GetBoolean();
-                bool cheDoVangNha = sensorData.GetProperty("CheDoVangNha").GetBoolean();
-                bool cuaMo = sensorData.GetProperty("CuaMo").GetBoolean();
-                double buiMin = sensorData.GetProperty("BuiMinPM25").GetDouble();
-                bool sanUotBan = sensorData.GetProperty("SanNhaUotBan").GetBoolean();
                 DateTime thoiGian = sensorData.GetProperty("ThoiGian").GetDateTime();
-
                 bool hasAlert = false;
 
-                // 2. Kiểm tra logic và gửi cảnh báo
-                if (nhietDo > 60.0 || khoi)
+                // --- 1. Xử lý Phòng Khách ---
+                var khach = sensorData.GetProperty("Khach");
+                bool cuaMo = khach.GetProperty("CuaChinhMo").GetBoolean();
+                bool tiviBat = khach.GetProperty("TiviBat").GetBoolean();
+                bool quatBat = khach.GetProperty("QuatBat").GetBoolean();
+                bool denBatKhach = khach.GetProperty("DenBat").GetBoolean();
+
+                if (cuaMo)
                 {
-                    await TriggerAlert(thoiGian, "Fire", "CẢNH BÁO CHÁY", ConsoleColor.Red);
+                    await TriggerAlert(thoiGian, "Phòng Khách", "Security", "Cửa chính đang mở. Cảnh báo an ninh!", ConsoleColor.Yellow);
+                    hasAlert = true;
+                }
+                else if (tiviBat || quatBat || denBatKhach) 
+                {
+                    await TriggerAlert(thoiGian, "Phòng Khách", "Energy", "Quên tắt Tivi/Quạt/Đèn khi không có nhà.", ConsoleColor.Cyan);
                     hasAlert = true;
                 }
 
-                if (cheDoVangNha && cuaMo)
+                // --- 2. Xử lý Phòng Bếp ---
+                var bep = sensorData.GetProperty("Bep");
+                double nhietDoBep = bep.GetProperty("NhietDo").GetDouble();
+                bool khoiBep = bep.GetProperty("PhatHienKhoi").GetBoolean();
+                bool bepTuBat = bep.GetProperty("BepTuBat").GetBoolean();
+
+                if (nhietDoBep > 50.0 || khoiBep)
                 {
-                    await TriggerAlert(thoiGian, "Security", "CẢNH BÁO ĐỘT NHẬP", ConsoleColor.Red);
+                    await TriggerAlert(thoiGian, "Phòng Bếp", "Fire", "Phát hiện nhiệt độ cao hoặc có khói. Nguy cơ cháy nổ!", ConsoleColor.Red);
                     hasAlert = true;
+                }
+                else if (bepTuBat && !khoiBep && nhietDoBep < 40.0)
+                {
+                     await TriggerAlert(thoiGian, "Phòng Bếp", "Safety", "Bếp từ đang bật nhưng không sử dụng.", ConsoleColor.DarkYellow);
+                     hasAlert = true;
                 }
 
-                if (buiMin > 50.0)
-                {
-                    await TriggerAlert(thoiGian, "AirQuality", "Bụi mịn cao", ConsoleColor.Yellow);
-                    hasAlert = true;
-                }
+                // --- 3. Xử lý Phòng Ngủ ---
+                var ngu = sensorData.GetProperty("Ngu");
+                bool dieuHoaNgu = ngu.GetProperty("DieuHoaBat").GetBoolean();
                 
-                if (sanUotBan)
+                if (dieuHoaNgu && cuaMo) 
                 {
-                    await TriggerAlert(thoiGian, "Cleaning", "Sàn bẩn, Robot hoạt động", ConsoleColor.Cyan);
+                     // Báo động cụ thể như em mong muốn
+                     await TriggerAlert(thoiGian, "Phòng Ngủ", "Energy", "Không tắt điều hòa khi đang không sử dụng hay đã đi ra khỏi nhà.", ConsoleColor.Cyan);
+                     hasAlert = true;
+                }
+
+                // --- 4. Xử lý Phòng Tắm ---
+                var tam = sensorData.GetProperty("Tam");
+                bool binhNongLanh = tam.GetProperty("BinhNongLanhBat").GetBoolean();
+                double nhietDoTam = tam.GetProperty("NhietDo").GetDouble();
+
+                if (binhNongLanh && nhietDoTam > 30.0)
+                {
+                    await TriggerAlert(thoiGian, "Phòng Tắm", "Energy", "Phòng tắm nóng, hãy tắt bình nóng lạnh để tiết kiệm điện.", ConsoleColor.Cyan);
                     hasAlert = true;
                 }
 
+                // --- Trạng thái an toàn toàn cục ---
                 if (!hasAlert)
                 {
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"[{thoiGian.AddHours(7):HH:mm:ss}] CH-101: An toàn.");
+                    Console.WriteLine($"[{thoiGian.AddHours(7):HH:mm:ss}] Trạng thái: Mọi phòng hoạt động bình thường.");
                     Console.ResetColor();
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Lỗi xử lý logic: {ex.Message}");
+                _logger.LogError($"Lỗi phân tích logic phòng: {ex.Message}");
             }
         }
 
-        // Hàm hỗ trợ: In ra màn hình VÀ gửi sang WPF
-        // Sửa hàm TriggerAlert trong AlertProcessingService.cs như sau:
-        private async Task TriggerAlert(DateTime time, string type, string message, ConsoleColor color)
+        // --- HÀM GỬI CẢNH BÁO ---
+        private async Task TriggerAlert(DateTime time, string roomName, string type, string message, ConsoleColor color)
         {
-            // 1. In ra màn hình Terminal
+            // 1. In ra Console 
             Console.ForegroundColor = color;
-            Console.WriteLine($"[{time.AddHours(7):HH:mm:ss}] [{type}] {message}");
+            Console.WriteLine($"[{time.AddHours(7):HH:mm:ss}] [{roomName}] [{type}] {message}");
             Console.ResetColor();
 
-            // 2. Gửi sang WPF - Đã điền đầy đủ các thuộc tính required
+            // 2. Bắn sang WPF Client cho Bạn 4 
             await _hubContext.Clients.All.SendAsync("ReceiveAlert", new AlertPayload 
             {
-                ApartmentId = "CH-101",          // Điền ID căn hộ
-                AlertType = type,                // Loại cảnh báo
-                CurrentValue = 0.0,              // Giá trị cảm biến (nếu không có thì để 0.0)
-                Message = message,               // Tin nhắn
-                Timestamp = time.AddHours(7),    // Thời gian
-                Status = "DANGER"                // Trạng thái
+                AlertType = type,
+                CurrentValue = 0.0, 
+                Message = $"[{roomName}] {message}", 
+                Timestamp = time.AddHours(7), 
+                Status = "WARNING"
             });
         }
     }
