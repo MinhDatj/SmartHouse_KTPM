@@ -2,7 +2,7 @@ Sơ đồ 1: Luồng xử lý dữ liệu định kỳ (Dành cho Bạn 1, Bạn
 
 [Bạn 1: Simulator]               [MQTT Broker]             [Bạn 2: Server]             [Database]             [Bạn 4: WPF Client]
         │                              │                          │                         │                          │
-        ├─(Mỗi 5 giây sinh JSON)      │                          │                         │                          │
+        ├─(Mỗi 5 giây sinh JSON)       │                          │                         │                          │
         ├─────────────────────────────>│                          │                         │                          │
         │   Publish gói Telemetry      │                          │                         │                          │
         │                              ├─────────────────────────>│                         │                          │

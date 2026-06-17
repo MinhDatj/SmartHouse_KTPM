@@ -21,7 +21,6 @@
     <File Path="CauHinhGoiJson.txt" />
     <File Path="CauTrucThuMuc.txt" />
     <File Path="kythuatphanmem.txt" />
-    <File Path="PhanViec.txt" />
     <File Path="trình tự xây dựng kythuatphanmem.txt" />
   </Folder>
 </Solution>
