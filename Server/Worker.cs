@@ -154,8 +154,9 @@ namespace SmartBuilding.Server
                     await Task.WhenAll(dbTask, alertTask);
 
                     // Đẩy dữ liệu Real-time lên App WPF thông qua SignalR
-                    await _hubContext.Clients.Group($"Apartment_{telemetryData.ApartmentId}")
-                        .SendAsync("ReceiveTelemetry", telemetryData);
+                    //await _hubContext.Clients.Group($"Apartment_{telemetryData.ApartmentId}")
+                    //    .SendAsync("ReceiveTelemetry", telemetryData);
+                    await _hubContext.Clients.All.SendAsync("ReceiveTelemetry", telemetryData);
                 }
             }
             catch (Exception ex)

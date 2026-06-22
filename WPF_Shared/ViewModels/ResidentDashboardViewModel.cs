@@ -6,6 +6,8 @@ using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Collections.Generic;
+using WPF_Shared.Services;
 
 namespace WPF_Shared.ViewModels;
 
@@ -37,8 +39,16 @@ public partial class ResidentDashboardViewModel : ObservableObject
     [ObservableProperty] private SeriesCollection historyChartSeries;
     [ObservableProperty] private ObservableCollection<string> chartLabels;
 
+    // Để lưu trữ ngầm, tránh reset đồ thị khi chuyển sang xem cái khác
+    private List<double> _tempHistory = new List<double>();
+    private List<double> _humHistory = new List<double>();
+    private List<double> _smokeHistory = new List<double>();
+    private List<string> _timeHistory = new List<string>();
+
     // --- CÁC BIẾN CHO TAB THÔNG BÁO ---
     [ObservableProperty] private ObservableCollection<NotificationModel> notifications;
+
+    private readonly SignalRService _signalRService;
 
     public ResidentDashboardViewModel()
     {
@@ -46,9 +56,14 @@ public partial class ResidentDashboardViewModel : ObservableObject
         ChartLabels = new ObservableCollection<string>();
         Notifications = new ObservableCollection<NotificationModel>();
 
-        UpdateChart();
-        InitializeMockNotifications(); // Khởi tạo dữ liệu thông báo giả lập
-        StartMockDataSimulator();
+        _ = LoadChartDataAsync();
+
+        _signalRService = new SignalRService();
+
+        _signalRService.OnRealTimeDataUpdated += (temp, hum, smoke) => { OnRealTimeDataReceived(temp, hum, smoke); };
+        _signalRService.OnAlertTriggered += (apartmentId, apartmentName, message) => { ReceiveNotificationFromManager("BÁO ĐỘNG KHẨN CẤP", message); };
+
+        _ = _signalRService.ConnectAsync();
     }
 
     // --- KHỞI TẠO DỮ LIỆU THÔNG BÁO GIẢ LẬP ---
@@ -129,49 +144,112 @@ public partial class ResidentDashboardViewModel : ObservableObject
             IsTempDanger = temp > 60;
             IsHumDanger = hum > 90;
             IsSmokeDanger = smoke > 500;
+
+            string currentTime = DateTime.Now.ToString("HH:mm:ss");
+
+            // 1. Nạp đạn vào cả 3 KHO NGẦM
+            _tempHistory.Add(temp);
+            _humHistory.Add(hum);
+            _smokeHistory.Add(smoke);
+            _timeHistory.Add(currentTime);
+
+            // 2. Cơ chế dịch chuyển 15 điểm cho KHO NGẦM
+            if (_tempHistory.Count > 15)
+            {
+                _tempHistory.RemoveAt(0);
+                _humHistory.RemoveAt(0);
+                _smokeHistory.RemoveAt(0);
+                _timeHistory.RemoveAt(0);
+            }
+
+            // 3. Lấy kho tương ứng ra để vẽ lên giao diện
+            if (HistoryChartSeries.Count > 0)
+            {
+                var lineSeries = (LineSeries)HistoryChartSeries[0];
+
+                double newValue = 0;
+                if (SelectedMetric == "Temperature") newValue = temp;
+                else if (SelectedMetric == "Humidity") newValue = hum;
+                else if (SelectedMetric == "Smoke") newValue = smoke;
+
+                // Bơm trực tiếp vào đầu mảng Values của LiveCharts
+                lineSeries.Values.Add(newValue);
+                ChartLabels.Add(currentTime);
+
+                // Xóa điểm cũ để tạo hiệu ứng trôi ngang
+                if (lineSeries.Values.Count > 15)
+                {
+                    lineSeries.Values.RemoveAt(0);
+                    ChartLabels.RemoveAt(0);
+                }
+            }
         });
     }
 
-    [RelayCommand] private void SelectMetric(string metric) { SelectedMetric = metric; UpdateChart(); }
-    [RelayCommand] private void SelectTimeFrame(string timeFrame) { SelectedTimeFrame = timeFrame; UpdateChart(); }
+    [RelayCommand] private async Task SelectMetric(string metric) { 
+        SelectedMetric = metric;
+        // Rút kho tương ứng ra vẽ
+        if (metric == "Temperature") UpdateChartWithRealData(_timeHistory, _tempHistory);
+        else if (metric == "Humidity") UpdateChartWithRealData(_timeHistory, _humHistory);
+        else if (metric == "Smoke") UpdateChartWithRealData(_timeHistory, _smokeHistory);
+    }
 
-    private void UpdateChart()
+    [RelayCommand] private async Task SelectTimeFrame(string timeFrame) { 
+        SelectedTimeFrame = timeFrame; 
+        await LoadChartDataAsync(); 
+    }
+
+    public async Task LoadChartDataAsync()
+    {
+        UpdateChartWithRealData(new List<string>(), new List<double>());
+    }
+
+    // Tham số truyền vào là list labels (Trục X) và list values (Trục Y) lấy từ API
+    private void UpdateChartWithRealData(List<string> labels, List<double> values)
     {
         Application.Current.Dispatcher.Invoke(() =>
         {
-            HistoryChartSeries.Clear();
-            ChartLabels.Clear();
+            if (HistoryChartSeries.Count == 0)
+            {
+                HistoryChartSeries.Add(new LineSeries { PointGeometrySize = 10, LineSmoothness = 0.5 });
+            }
+            var lineSeries = (LineSeries)HistoryChartSeries[0];
 
-            var chartValues = new ChartValues<double>();
+            //HistoryChartSeries.Clear();
+            ChartLabels.Clear();
+            foreach (var label in labels) ChartLabels.Add(label);
+
+            //var chartValues = new ChartValues<double>;
             string title = "";
             string colorHex = "#2196F3";
 
-            if (SelectedTimeFrame == "1h") { XAxisTitle = "Phút trước"; for (int i = 60; i >= 0; i -= 10) ChartLabels.Add(i.ToString()); }
-            else if (SelectedTimeFrame == "24h") { XAxisTitle = "Giờ trước"; for (int i = 24; i >= 0; i -= 3) ChartLabels.Add(i.ToString()); }
-            else if (SelectedTimeFrame == "7d") { XAxisTitle = "Ngày trước"; for (int i = 7; i >= 0; i--) ChartLabels.Add(i.ToString()); }
+            if (SelectedMetric == "Temperature") { title = "Nhiệt độ (°C)"; colorHex = "#F44336"; }
+            else if (SelectedMetric == "Humidity") { title = "Độ ẩm (%)"; colorHex = "#4CAF50"; }
+            else if (SelectedMetric == "Smoke") { title = "Khói (ppm)"; colorHex = "#9E9E9E"; }
 
-            int pointCount = ChartLabels.Count;
-            Random rand = new Random();
+            // Cập nhật thuộc tính đồ thị
+            lineSeries.Title = title;
+            lineSeries.Stroke = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(colorHex);
+            lineSeries.Fill = System.Windows.Media.Brushes.Transparent;
 
-            if (SelectedMetric == "Temperature") { title = "Nhiệt độ (°C)"; colorHex = "#F44336"; for (int i = 0; i < pointCount; i++) chartValues.Add(Math.Round(rand.NextDouble() * 10 + 25, 1)); }
-            else if (SelectedMetric == "Humidity") { title = "Độ ẩm (%)"; colorHex = "#4CAF50"; for (int i = 0; i < pointCount; i++) chartValues.Add(Math.Round(rand.NextDouble() * 20 + 50, 1)); }
-            else if (SelectedMetric == "Smoke") { title = "Khói (ppm)"; colorHex = "#9E9E9E"; for (int i = 0; i < pointCount; i++) chartValues.Add(Math.Round(rand.NextDouble() * 100 + 100, 1)); }
-
-            HistoryChartSeries.Add(new LineSeries
-            {
-                Title = title,
-                Values = chartValues,
-                Stroke = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(colorHex),
-                Fill = System.Windows.Media.Brushes.Transparent,
-                PointGeometrySize = 10,
-                LineSmoothness = 0.5
-            });
+            // Nạp mảng giá trị (Ghi đè hoàn toàn mảng cũ bằng mảng mới từ Kho)
+            lineSeries.Values = new ChartValues<double>(values);
         });
     }
 
     [RelayCommand]
-    private void SendSupportRequest()
+    private async Task SendSupportRequest()
     {
-        MessageBox.Show("Đã gửi yêu cầu hỗ trợ đến Ban Quản Lý!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+        // Tương lai: ID căn hộ sẽ lấy từ lúc Đăng nhập. 
+        // Hiện tại: Gắn cứng mã "P102" để test cho khớp với giao diện của Manager
+        int apartmentId = 2;
+        string alertMessage = "Chủ hộ đang gửi yêu cầu hỗ trợ khẩn cấp từ ứng dụng!";
+
+        // Bắn tín hiệu qua ống SignalR lên Server
+        if (_signalRService != null)
+        {
+            await _signalRService.SendSupportRequestToServerAsync(apartmentId, alertMessage);
+            MessageBox.Show("Tín hiệu SOS đã được phát đi thành công!", "Đã gửi", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
     }
 }

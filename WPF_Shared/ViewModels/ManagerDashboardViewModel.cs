@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using WPF_Shared.Services;
 
 namespace WPF_Shared.ViewModels;
 
@@ -43,7 +44,19 @@ public partial class ManagerDashboardViewModel : ObservableObject
         Apartments.Add(new ApartmentModel { Id = "P201", ApartmentName = "Căn hộ 201", IsNormal = true });
         Apartments.Add(new ApartmentModel { Id = "P202", ApartmentName = "Căn hộ 202", IsNormal = true });
 
-        StartMockEmergencySimulator();
+        //StartMockEmergencySimulator();
+        // Khởi tạo SignalR Service
+        var signalR = new SignalRService();
+
+        // Đăng ký hứng báo động (Để màn hình Quản lý đỏ rực lên)
+        signalR.OnAlertTriggered += (apartmentId, apartmentName, message) =>
+        {
+            string uiCardId = $"P10{apartmentId}";
+            OnAlertReceived(uiCardId, apartmentName, message); // Gọi đúng hàm ta đã sửa ở bài trước
+        };
+
+        // Kích hoạt chạy ngầm
+        _ = signalR.ConnectAsync();
     }
 
     // --- GIẢ LẬP NHẬN TÍN HIỆU TỪ CHỦ HỘ ---
@@ -78,11 +91,29 @@ public partial class ManagerDashboardViewModel : ObservableObject
         });
     }
 
+    // --- HÀM CHUẨN BỊ HỨNG DỮ LIỆU SIGNALR TỪ SERVER ---
+    public void OnAlertReceived(string uiCardId, string apartmentName, string message)
+    {
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            var apt = Apartments.FirstOrDefault(a => a.Id == uiCardId);
+            if (apt != null) apt.IsNormal = false;
+
+            ActiveAlerts.Insert(0, new AlertModel
+            {
+                ApartmentName = apartmentName, 
+                Message = message
+            });
+
+            HasEmergency = true;
+        });
+    }
+
     // --- COMMAND: GỬI TIN NHẮN CHO CHỦ HỘ ---
     [RelayCommand]
     private void SendMessageToResident(ApartmentModel targetApartment)
     {
-        // Thực tế: Gửi MQTT Publish tới Topic của căn hộ này
+        // Thực tế sẽ gọi API (HTTP POST) hoặc SignalR Hub tới Server
         MessageBox.Show($"Đã gửi tin nhắn cảnh báo nhắc nhở tới chủ hộ {targetApartment.ApartmentName}.",
             "Gửi tín hiệu thành công", MessageBoxButton.OK, MessageBoxImage.Information);
     }

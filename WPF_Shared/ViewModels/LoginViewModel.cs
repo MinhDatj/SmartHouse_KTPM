@@ -34,7 +34,6 @@ public partial class LoginViewModel : ObservableObject
             {
                 HasError = false;
                 ErrorMessage = string.Empty;
-
                 // Kích hoạt sự kiện chuyển màn hình
                 OnLoginSuccess?.Invoke();
             }
@@ -44,7 +43,7 @@ public partial class LoginViewModel : ObservableObject
                 ErrorMessage = "Tài khoản hoặc mật khẩu không chính xác. Vui lòng thử lại!";
 
                 // Xóa trắng ô mật khẩu để người dùng nhập lại
-                passwordBox.Password = string.Empty;
+                //passwordBox.Password = string.Empty;
             }
         }
     }
