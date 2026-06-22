@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace SmartBuilding.Server.DT0s
+namespace SmartBuilding.Server.DTOs
 {
     public class TelemetryMessage
     {

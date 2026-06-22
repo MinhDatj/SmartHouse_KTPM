@@ -138,7 +138,7 @@ namespace SmartBuilding.Simulator
                     _isEmergency = !_isEmergency;
                     Console.BackgroundColor = _isEmergency ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
                     Console.ForegroundColor = ConsoleColor.White;
-                    Console.WriteLine($"\n>>> ĐÃ CHUYỂN TRẠNG THÁI SỰ CỐ: {(_isEmergency ? "BẬT (Cháy to)" : "TẮT (Bình thường)")} <<<\n");
+                    Console.WriteLine($"\n>>> DA CHUYEN TRANG THAI SU CO: {(_isEmergency ? "BAT (Chay to)" : "TAT (Binh thuong)")} <<<\n");
                     Console.ResetColor();
                 }
                 else

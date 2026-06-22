@@ -20,7 +20,6 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<QuanLyToaNha> QuanLyToaNhas { get; set; }
     public DbSet<NhanVien> NhanViens { get; set; }
     public DbSet<YeuCauHoTro> YeuCauHoTros { get; set; }
-    public DbSet<ThietBi> ThietBis {  get; set; }
 
     // Nơi cấu hình nâng cao (Tối ưu hiệu năng Database)
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -11,6 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<SmartBuilding.Server.Services.AlertService>();
 
 // Kích hoạt tiến trình chạy ngầm Worker hứng MQTT
 builder.Services.AddHostedService<Worker>();
