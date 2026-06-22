@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using WPF_Shared.ViewModels;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -11,14 +12,13 @@ using System.Windows.Shapes;
 
 namespace WPF_Resident
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         public MainWindow()
         {
             InitializeComponent();
+            // Gán ViewModel cho View (Bước rất quan trọng của MVVM)
+            this.DataContext = new ResidentDashboardViewModel();
         }
     }
 }
